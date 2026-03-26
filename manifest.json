@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Arsenal Test Alert",
+  "version": "1.0",
+  "description": "Test extension that alerts from the active tab.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://script.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Arsenal Test Alert",
+    "default_icon": {
+      "72": "football.png"
+    }
+  },
+  "icons": {
+    "72": "football.png"
+  }
+}
