@@ -9,25 +9,50 @@ function runArsenalFlow() {
     return;
   }
 
+  findAndOpenFirstResult(0);
+}
+
+function findAndOpenFirstResult(retryCount) {
+  if (hasNoResultsMessage()) {
+    console.log(`Arsenal extension: no tickets found, refreshing search (${retryCount + 1})`);
+    refreshTicketSearch(retryCount);
+    return;
+  }
+
   if (!clickFirstResultButton()) {
     return;
   }
 
-  window.setTimeout(() => {
-    if (!clickAdultButtonsForStandardTickets()) {
-      return;
-    }
+  runFlowSteps([
+    waitStep(1000),
+    actionStep(clickAdultButtonsForStandardTickets),
+    waitStep(500),
+    actionStep(clickAddToBasketButton),
+    waitStep(500),
+    actionStep(sendBasketEmail),
+  ]);
+}
 
-    window.setTimeout(() => {
-      if (!clickAddToBasketButton()) {
-        return;
+function refreshTicketSearch(retryCount) {
+  runFlowSteps([
+    waitStep(1000),
+    actionStep(clickInitialRemoveButton),
+    waitStep(1000),
+    actionStep(clickInitialAddButton),
+    waitStep(1000),
+    actionStep(() => {
+      if (hasNoResultsMessage()) {
+        runFlowSteps([
+          waitStep(5000),
+          actionStep(() => findAndOpenFirstResult(retryCount + 1)),
+        ]);
+        return false;
       }
 
-      window.setTimeout(() => {
-        sendBasketEmail();
-      }, 500);
-    }, 500);
-  }, 1000);
+      findAndOpenFirstResult(retryCount + 1);
+      return false;
+    }),
+  ]);
 }
 
 function clickInitialAddButton() {
@@ -39,6 +64,18 @@ function clickInitialAddButton() {
   }
 
   addButton.click();
+  return true;
+}
+
+function clickInitialRemoveButton() {
+  const removeButton = document.querySelector(".tickets-quantity_remove");
+
+  if (!removeButton) {
+    console.error("Arsenal extension: remove button not found");
+    return false;
+  }
+
+  removeButton.click();
   return true;
 }
 
@@ -74,6 +111,10 @@ function clickFirstResultButton() {
 
   firstResultButton.click();
   return true;
+}
+
+function hasNoResultsMessage() {
+  return Boolean(document.querySelector(".error-noResultsFound"));
 }
 
 function clickAdultButtonsForStandardTickets() {

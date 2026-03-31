@@ -37,6 +37,6 @@ chrome.action.onClicked.addListener(async (tab) => {
 
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    files: ["content_arsenal.js"],
+    files: ["steps.js", "content_arsenal.js"],
   });
 });
