@@ -14,6 +14,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     },
     body: JSON.stringify({
       secret: SHARED_SECRET,
+      to: message.email,
       subject: "Tickets in basket",
       body: "Tickets were added to the basket.",
     }),
@@ -34,6 +35,60 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id) {
     return;
   }
+
+  const [promptInjection] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => {
+      const input = window.prompt("How many tickets? Enter 1 or 2:", "2");
+      if (input === null) {
+        return null;
+      }
+      const value = input.trim();
+      if (value === "1" || value === "2") {
+        return Number(value);
+      }
+      window.alert("Arsenal extension: please enter 1 or 2.");
+      return null;
+    },
+  });
+
+  const ticketCount = promptInjection?.result;
+  if (ticketCount !== 1 && ticketCount !== 2) {
+    return;
+  }
+
+  const [emailInjection] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => {
+      const input = window.prompt(
+        "Send confirmation email to:",
+        "justinlewis1@hotmail.com",
+      );
+      if (input === null) {
+        return null;
+      }
+      const value = input.trim();
+      if (!value.includes("@")) {
+        window.alert("Arsenal extension: please enter a valid email address.");
+        return null;
+      }
+      return value;
+    },
+  });
+
+  const email = emailInjection?.result;
+  if (!email) {
+    return;
+  }
+
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (count, mail) => {
+      window.__arsenalTicketCount = count;
+      window.__arsenalEmail = mail;
+    },
+    args: [ticketCount, email],
+  });
 
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },

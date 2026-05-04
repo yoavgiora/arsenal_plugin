@@ -1,7 +1,7 @@
-runArsenalFlow();
+runArsenalFlow(window.__arsenalTicketCount === 1 ? 1 : 2);
 
-function runArsenalFlow() {
-  if (!clickInitialAddButton()) {
+function runArsenalFlow(ticketCount) {
+  if (ticketCount === 2 && !clickInitialAddButton()) {
     return;
   }
 
@@ -9,13 +9,13 @@ function runArsenalFlow() {
     return;
   }
 
-  findAndOpenFirstResult(0);
+  findAndOpenFirstResult(0, ticketCount);
 }
 
-function findAndOpenFirstResult(retryCount) {
+function findAndOpenFirstResult(retryCount, ticketCount) {
   if (hasNoResultsMessage()) {
     console.log(`Arsenal extension: no tickets found, refreshing search (${retryCount + 1})`);
-    refreshTicketSearch(retryCount);
+    refreshTicketSearch(retryCount, ticketCount);
     return;
   }
 
@@ -33,23 +33,26 @@ function findAndOpenFirstResult(retryCount) {
   ]);
 }
 
-function refreshTicketSearch(retryCount) {
+function refreshTicketSearch(retryCount, ticketCount) {
+  const firstNudge = ticketCount === 1 ? clickInitialAddButton : clickInitialRemoveButton;
+  const secondNudge = ticketCount === 1 ? clickInitialRemoveButton : clickInitialAddButton;
+
   runFlowSteps([
     waitStep(1000),
-    actionStep(clickInitialRemoveButton),
+    actionStep(firstNudge),
     waitStep(1000),
-    actionStep(clickInitialAddButton),
+    actionStep(secondNudge),
     waitStep(1000),
     actionStep(() => {
       if (hasNoResultsMessage()) {
         runFlowSteps([
           waitStep(5000),
-          actionStep(() => findAndOpenFirstResult(retryCount + 1)),
+          actionStep(() => findAndOpenFirstResult(retryCount + 1, ticketCount)),
         ]);
         return false;
       }
 
-      findAndOpenFirstResult(retryCount + 1);
+      findAndOpenFirstResult(retryCount + 1, ticketCount);
       return false;
     }),
   ]);
@@ -159,17 +162,20 @@ function clickAddToBasketButton() {
 }
 
 function sendBasketEmail() {
-  chrome.runtime.sendMessage({ action: "sendBasketEmail" }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error(
-        "Arsenal extension: failed to send basket email",
-        chrome.runtime.lastError.message,
-      );
-      return;
-    }
+  chrome.runtime.sendMessage(
+    { action: "sendBasketEmail", email: window.__arsenalEmail },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "Arsenal extension: failed to send basket email",
+          chrome.runtime.lastError.message,
+        );
+        return;
+      }
 
-    if (!response?.ok) {
-      console.error("Arsenal extension: basket email rejected", response);
-    }
-  });
+      if (!response?.ok) {
+        console.error("Arsenal extension: basket email rejected", response);
+      }
+    },
+  );
 }
